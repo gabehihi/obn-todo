@@ -270,11 +270,8 @@ window.App = (function () {
     container.innerHTML = '';
 
     if (ddays.length === 0) {
-      section.style.display = 'none';
       return;
     }
-
-    section.style.display = 'flex';
 
     ddays.forEach((d) => {
       const diff = DDay.calculateDDay(d.targetDate);
@@ -330,10 +327,11 @@ window.App = (function () {
     const editingItem = document.querySelector('.todo-item.editing');
     if (editingItem) render();
 
-    const today = new Date();
-    const yyyy = today.getFullYear();
-    const mm = String(today.getMonth() + 1).padStart(2, '0');
-    const dd = String(today.getDate()).padStart(2, '0');
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const yyyy = tomorrow.getFullYear();
+    const mm = String(tomorrow.getMonth() + 1).padStart(2, '0');
+    const dd = String(tomorrow.getDate()).padStart(2, '0');
     $('#dday-date-input').min = `${yyyy}-${mm}-${dd}`;
 
     $('#dday-title-input').value = '';
