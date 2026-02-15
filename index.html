@@ -8,7 +8,12 @@
   <meta property="og:description" content="오늘 하루에 집중하는 미니멀 할 일 관리 앱">
   <meta property="og:type" content="website">
   <meta name="theme-color" content="#3498DB">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="오늘뿐인 나">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📋</text></svg>">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <link rel="manifest" href="manifest.json">
   <title>오늘뿐인 나 (OBN)</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
   <link rel="stylesheet" href="style.css">
@@ -83,5 +88,10 @@
   <script src="storage.js"></script>
   <script src="app.js"></script>
   <script src="notification.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('./sw.js');
+    }
+  </script>
 </body>
 </html>
