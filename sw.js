@@ -1,7 +1,7 @@
 // sw.js: Service Worker - 오프라인 캐싱 + 푸시 알림
-// OBN v2.0 - 스마트 푸시 알림, 반복 할 일, D-Day 카운트다운, 커스텀 아이콘
+// OBN v2.1 - D-Day 버그 수정, 캐시 갱신
 
-const CACHE_NAME = 'obn-todo-v2';
+const CACHE_NAME = 'obn-todo-v2.1';
 const ASSETS = [
   './',
   './index.html',

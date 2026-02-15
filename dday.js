@@ -1,5 +1,5 @@
 // dday.js: D-Day 카운트다운 데이터 관리 모듈
-// OBN v2.0 - 스마트 푸시 알림, 반복 할 일, D-Day 카운트다운, 커스텀 아이콘
+// OBN v2.1 - D-Day 버그 수정, 캐시 갱신
 
 window.DDay = (function () {
   const STORAGE_KEY = 'obn-ddays';

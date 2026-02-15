@@ -1,5 +1,5 @@
 /* style.css: 스타일시트 (미니멀 화이트 디자인) */
-/* OBN v2.0 - 스마트 푸시 알림, 반복 할 일, D-Day 카운트다운, 커스텀 아이콘 */
+/* OBN v2.1 - D-Day 버그 수정, 캐시 갱신 */
 
 /* ============================
    CSS 변수 정의
@@ -564,6 +564,11 @@ body {
 
 #dday-section::-webkit-scrollbar {
   display: none;
+}
+
+#dday-container {
+  display: flex;
+  gap: 8px;
 }
 
 /* D-Day 카드 */

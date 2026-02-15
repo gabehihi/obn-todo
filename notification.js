@@ -1,5 +1,5 @@
 // notification.js: Service Worker 기반 푸시 알림 관리
-// OBN v2.0 - 스마트 푸시 알림, 반복 할 일, D-Day 카운트다운, 커스텀 아이콘
+// OBN v2.1 - D-Day 버그 수정, 캐시 갱신
 
 window.NotificationManager = (function () {
   const STORAGE_KEY = 'obn-notification';
