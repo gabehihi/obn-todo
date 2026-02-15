@@ -3,16 +3,16 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="오늘뿐인 나 - 오늘 하루에 집중하는 미니멀 할 일 관리 앱">
+  <meta name="description" content="오늘뿐인 나(OBN) - 스마트 투두 리마인더. D-Day 카운트다운, 반복 할 일, 푸시 알림으로 오늘 하루를 완벽하게.">
   <meta property="og:title" content="오늘뿐인 나 (OBN)">
-  <meta property="og:description" content="오늘 하루에 집중하는 미니멀 할 일 관리 앱">
+  <meta property="og:description" content="스마트 투두 리마인더. D-Day 카운트다운, 반복 할 일, 푸시 알림으로 오늘 하루를 완벽하게.">
   <meta property="og:type" content="website">
   <meta name="theme-color" content="#3498DB">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="오늘뿐인 나">
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📋</text></svg>">
-  <link rel="apple-touch-icon" href="icon-192.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="icon-32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="icon-180.png">
   <link rel="manifest" href="manifest.json">
   <title>오늘뿐인 나 (OBN)</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
@@ -20,6 +20,16 @@
 </head>
 <body>
   <div id="app">
+
+    <!-- D-Day 카운트다운 -->
+    <section id="dday-section">
+      <div id="dday-container">
+        <!-- D-Day 카드들이 여기에 동적으로 생성됨 -->
+      </div>
+      <button id="btn-add-dday" class="dday-add-btn" aria-label="D-Day 추가">
+        ＋ D-Day 추가
+      </button>
+    </section>
 
     <!-- 헤더: 앱 타이틀, 날짜, 진행률 -->
     <header id="header">
@@ -56,6 +66,16 @@
         </select>
         <button id="add-btn" aria-label="할 일 추가">추가</button>
       </div>
+      <div class="recurring-toggle">
+        <label class="recurring-label">
+          <input type="checkbox" id="recurring-checkbox" class="recurring-checkbox">
+          <span class="recurring-icon">🔁</span>
+          <span class="recurring-text">매일 반복</span>
+        </label>
+        <span class="recurring-hint" id="recurring-hint" style="display:none;">
+          매일 자정에 자동 리셋됩니다
+        </span>
+      </div>
     </section>
 
     <!-- 필터: 카테고리별 탭 -->
@@ -69,6 +89,7 @@
         <button class="filter-tab" data-filter="약속">🤝 약속</button>
         <button class="filter-tab" data-filter="행사">🎉 행사</button>
         <button class="filter-tab" data-filter="약 복용">💊 약 복용</button>
+        <button class="filter-tab" data-filter="recurring">🔁 반복</button>
       </nav>
     </div>
 
@@ -85,7 +106,37 @@
 
   </div>
 
+  <!-- D-Day 추가 모달 -->
+  <div id="dday-modal" class="modal-overlay" style="display:none;">
+    <div class="modal-content">
+      <h3 class="modal-title">🎯 D-Day 추가</h3>
+      <div class="modal-body">
+        <label class="modal-label">시험/목표 이름</label>
+        <input type="text" id="dday-title-input" class="modal-input"
+               placeholder="예: 토익 시험" maxlength="30">
+
+        <label class="modal-label">목표 날짜</label>
+        <input type="date" id="dday-date-input" class="modal-input">
+
+        <label class="modal-label">이모지 선택</label>
+        <div id="emoji-picker" class="emoji-picker">
+          <button class="emoji-btn active" data-emoji="🎯" aria-label="목표 이모지">🎯</button>
+          <button class="emoji-btn" data-emoji="📝" aria-label="시험 이모지">📝</button>
+          <button class="emoji-btn" data-emoji="💻" aria-label="코딩 이모지">💻</button>
+          <button class="emoji-btn" data-emoji="🏆" aria-label="우승 이모지">🏆</button>
+          <button class="emoji-btn" data-emoji="🚗" aria-label="운전 이모지">🚗</button>
+          <button class="emoji-btn" data-emoji="🎓" aria-label="졸업 이모지">🎓</button>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button id="btn-dday-cancel" class="modal-btn modal-btn-cancel" aria-label="D-Day 추가 취소">취소</button>
+        <button id="btn-dday-save" class="modal-btn modal-btn-save" aria-label="D-Day 저장">저장</button>
+      </div>
+    </div>
+  </div>
+
   <script src="storage.js"></script>
+  <script src="dday.js"></script>
   <script src="app.js"></script>
   <script src="notification.js"></script>
   <script>

@@ -1,4 +1,5 @@
 /* style.css: 스타일시트 (미니멀 화이트 디자인) */
+/* OBN v2.0 - 스마트 푸시 알림, 반복 할 일, D-Day 카운트다운, 커스텀 아이콘 */
 
 /* ============================
    CSS 변수 정의
@@ -189,6 +190,52 @@ body {
 
 #add-btn:active {
   transform: scale(0.98);
+}
+
+/* 반복 토글 */
+.recurring-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 0;
+}
+
+.recurring-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--text-primary);
+  user-select: none;
+}
+
+.recurring-checkbox {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.recurring-icon {
+  font-size: 16px;
+}
+
+.recurring-text {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.recurring-hint {
+  font-size: 12px;
+  color: var(--accent);
+  animation: fadeIn 0.3s ease;
+}
+
+.todo-recurring-badge {
+  font-size: 12px;
+  margin-right: 4px;
+  opacity: 0.7;
 }
 
 /* ============================
@@ -476,6 +523,19 @@ body {
     width: 100%;
     flex-basis: 100%;
   }
+
+  .dday-card {
+    padding: 6px 10px;
+  }
+
+  .dday-title {
+    max-width: 60px;
+  }
+
+  .modal-content {
+    width: 95%;
+    padding: 20px;
+  }
 }
 
 /* 데스크톱 그림자 강화 */
@@ -487,6 +547,217 @@ body {
     margin-bottom: 20px;
     min-height: calc(100vh - 40px);
   }
+}
+
+/* ============================
+   D-Day 섹션
+   ============================ */
+#dday-section {
+  padding: 12px 20px 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+#dday-section::-webkit-scrollbar {
+  display: none;
+}
+
+/* D-Day 카드 */
+.dday-card {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  background: var(--bg-secondary);
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  white-space: nowrap;
+  flex-shrink: 0;
+  position: relative;
+}
+
+.dday-card.today {
+  background: #FFF5F5;
+  border-color: #FECACA;
+}
+
+.dday-emoji {
+  font-size: 18px;
+}
+
+.dday-title {
+  font-size: 13px;
+  color: var(--text-secondary);
+  max-width: 80px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dday-count {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.dday-count.urgent {
+  color: #E74C3C;
+}
+
+.dday-delete {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #E74C3C;
+  color: white;
+  font-size: 11px;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.dday-card:hover .dday-delete {
+  opacity: 1;
+}
+
+/* D-Day 추가 버튼 */
+.dday-add-btn {
+  padding: 8px 14px;
+  border: 1.5px dashed var(--border);
+  border-radius: 12px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-family: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: all 0.2s;
+}
+
+.dday-add-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* ============================
+   모달
+   ============================ */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(4px);
+}
+
+.modal-content {
+  background: white;
+  border-radius: 16px;
+  padding: 24px;
+  width: 90%;
+  max-width: 360px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+}
+
+.modal-title {
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.modal-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  display: block;
+  margin-bottom: 6px;
+  margin-top: 14px;
+}
+
+.modal-input {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  font-size: 15px;
+  font-family: inherit;
+  box-sizing: border-box;
+}
+
+.modal-input:focus {
+  border-color: var(--accent);
+  outline: none;
+}
+
+/* 이모지 피커 */
+.emoji-picker {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.emoji-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  border: 1.5px solid var(--border);
+  background: white;
+  font-size: 20px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.emoji-btn.active {
+  border-color: var(--accent);
+  background: rgba(52, 152, 219, 0.08);
+}
+
+/* 모달 액션 */
+.modal-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 24px;
+}
+
+.modal-btn {
+  flex: 1;
+  padding: 12px;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+}
+
+.modal-btn-cancel {
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+}
+
+.modal-btn-save {
+  background: var(--accent);
+  color: white;
 }
 
 /* ============================

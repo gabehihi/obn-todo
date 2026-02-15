@@ -1,8 +1,8 @@
 {
-  "name": "오늘뿐인 나 (OBN)",
-  "short_name": "OBN Todo",
+  "name": "오늘뿐인 나",
+  "short_name": "OBN",
   "description": "오늘 하루에 집중하는 미니멀 할 일 관리 앱",
-  "start_url": "./",
+  "start_url": ".",
   "display": "standalone",
   "background_color": "#FFFFFF",
   "theme_color": "#3498DB",

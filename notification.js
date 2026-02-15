@@ -1,33 +1,28 @@
-// notification.js: 푸시 알림 로직 - 12시/18시 리마인드 알림
+// notification.js: Service Worker 기반 푸시 알림 관리
+// OBN v2.0 - 스마트 푸시 알림, 반복 할 일, D-Day 카운트다운, 커스텀 아이콘
 
 window.NotificationManager = (function () {
   const STORAGE_KEY = 'obn-notification';
-  const SENT_KEY = 'obn-notification-sent';
 
-  let isEnabled = localStorage.getItem(STORAGE_KEY) !== 'false';
-  let checkInterval = null;
+  let isEnabled = localStorage.getItem(STORAGE_KEY) === 'true';
+  let swRegistration = null;
 
   const $ = (sel) => document.querySelector(sel);
 
-  // 초기화: 토글 버튼 이벤트 등록, 알림 권한 요청
+  // 초기화: 토글 버튼 이벤트, SW 등록, 메시지 리스너
   function init() {
-    updateToggleButton();
     $('#notification-toggle').addEventListener('click', toggle);
+    updateToggleButton();
 
-    if (isEnabled) {
-      startChecking();
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.ready.then((reg) => {
+        swRegistration = reg;
+      });
+      navigator.serviceWorker.addEventListener('message', handleSWMessage);
     }
 
-    if ('Notification' in window) {
+    if (isEnabled && 'Notification' in window && Notification.permission === 'default') {
       requestPermission();
-    }
-  }
-
-  // 브라우저 알림 권한 요청
-  function requestPermission() {
-    if (!('Notification' in window)) return;
-    if (Notification.permission === 'default') {
-      Notification.requestPermission();
     }
   }
 
@@ -38,10 +33,7 @@ window.NotificationManager = (function () {
     updateToggleButton();
 
     if (isEnabled) {
-      startChecking();
       requestPermission();
-    } else {
-      stopChecking();
     }
   }
 
@@ -51,56 +43,58 @@ window.NotificationManager = (function () {
     btn.textContent = isEnabled ? '🔔 알림 ON' : '🔕 알림 OFF';
   }
 
-  // 1분 간격 시간 체크 시작
-  function startChecking() {
-    if (checkInterval) clearInterval(checkInterval);
-    checkTime();
-    checkInterval = setInterval(checkTime, 60000);
-  }
-
-  // 시간 체크 중지
-  function stopChecking() {
-    if (checkInterval) {
-      clearInterval(checkInterval);
-      checkInterval = null;
+  // 알림 권한 요청
+  function requestPermission() {
+    if (!('Notification' in window)) return;
+    if (Notification.permission === 'default') {
+      Notification.requestPermission().then((result) => {
+        if (result === 'denied') {
+          alert('알림이 차단되어 있습니다. 브라우저 설정에서 알림을 허용해주세요.');
+          isEnabled = false;
+          localStorage.setItem(STORAGE_KEY, isEnabled);
+          updateToggleButton();
+        }
+      });
+    } else if (Notification.permission === 'denied') {
+      alert('알림이 차단되어 있습니다. 브라우저 설정에서 알림을 허용해주세요.');
+      isEnabled = false;
+      localStorage.setItem(STORAGE_KEY, isEnabled);
+      updateToggleButton();
     }
   }
 
-  // 12시/18시 정각에 미완료 항목 확인 후 알림 발송
-  function checkTime() {
-    const now = new Date();
-    const hour = now.getHours();
-    const minute = now.getMinutes();
-
-    if ((hour === 12 && minute === 0) || (hour === 18 && minute === 0)) {
-      const sentKey = `${SENT_KEY}-${now.toDateString()}-${hour}`;
-      if (localStorage.getItem(sentKey)) return;
+  // SW에서 온 메시지 처리
+  function handleSWMessage(event) {
+    if (event.data.type === 'check-incomplete') {
+      if (!isEnabled) return;
 
       const todos = Storage.getTodos();
       const incomplete = todos.filter((t) => !t.completed);
+      const count = incomplete.length;
+      const items = incomplete.slice(0, 3).map((t) => t.text).join(', ') +
+        (count > 3 ? '...' : '');
 
-      if (incomplete.length > 0) {
-        sendNotification(incomplete);
-        localStorage.setItem(sentKey, 'true');
+      if (navigator.serviceWorker.controller) {
+        navigator.serviceWorker.controller.postMessage({
+          type: 'incomplete-count',
+          count: count,
+          items: items,
+        });
       }
     }
   }
 
-  // 브라우저 푸시 알림 발송 (5초 후 자동 닫기)
-  function sendNotification(incompleteTodos) {
-    if (!('Notification' in window)) return;
-    if (Notification.permission !== 'granted') return;
-
-    const count = incompleteTodos.length;
-    const top3 = incompleteTodos.slice(0, 3).map((t) => t.text).join(', ');
-    const body = `미완료 ${count}개: ${top3}${count > 3 ? '...' : ''}`;
-
-    const notification = new Notification('📋 오늘뿐인 나 - 리마인드', {
-      body: body,
-    });
-
-    setTimeout(() => notification.close(), 5000);
+  // 디버깅용 테스트 알림
+  function sendTestNotification() {
+    if (swRegistration) {
+      swRegistration.showNotification('테스트 알림', {
+        body: '알림이 정상 작동합니다!',
+        icon: 'icon-192.png',
+        badge: 'icon-192.png',
+        tag: 'obn-test',
+      });
+    }
   }
 
-  return { init, toggle };
+  return { init, toggle, sendTestNotification };
 })();

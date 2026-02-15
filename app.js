@@ -1,4 +1,5 @@
 // app.js: 메인 애플리케이션 로직 - UI 렌더링 및 이벤트 처리
+// OBN v2.0 - 스마트 푸시 알림, 반복 할 일, D-Day 카운트다운, 커스텀 아이콘
 
 window.App = (function () {
   let currentFilter = '전체';
@@ -33,11 +34,16 @@ window.App = (function () {
 
   // 앱 초기화: 날짜 표시, 이벤트 리스너 등록, 렌더링
   function init() {
+    // 반복 할 일 리셋 (날짜가 바뀌었으면 완료 초기화)
+    Storage.resetRecurringTodos();
+
     let currentDay = updateDate();
     setInterval(() => {
       const now = new Date();
       if (now.getDate() !== currentDay) {
         currentDay = updateDate();
+        Storage.resetRecurringTodos();
+        render();
       }
     }, 60000);
 
@@ -64,11 +70,38 @@ window.App = (function () {
 
     $('#clear-completed-btn').addEventListener('click', clearCompleted);
 
+    // 반복 체크박스 토글
+    $('#recurring-checkbox').addEventListener('change', (e) => {
+      $('#recurring-hint').style.display = e.target.checked ? 'inline' : 'none';
+    });
+
+    // D-Day 초기화
+    DDay.checkExpired();
+    renderDDays();
+    $('#btn-add-dday').addEventListener('click', openDDayModal);
+    $('#btn-dday-save').addEventListener('click', saveDDay);
+    $('#btn-dday-cancel').addEventListener('click', closeDDayModal);
+    $('#dday-modal').addEventListener('click', (e) => {
+      if (e.target === $('#dday-modal')) closeDDayModal();
+    });
+    document.querySelectorAll('.emoji-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.emoji-btn').forEach((b) => b.classList.remove('active'));
+        btn.classList.add('active');
+      });
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && $('#dday-modal').style.display !== 'none') {
+        closeDDayModal();
+      }
+    });
+
     render();
 
     if (window.NotificationManager) {
       NotificationManager.init();
     }
+
   }
 
   // 입력값을 검증하고 할 일 추가
@@ -85,9 +118,12 @@ window.App = (function () {
 
     const category = $('#category-select').value;
     const priority = $('#priority-select').value;
+    const isRecurring = $('#recurring-checkbox').checked;
 
-    const newTodo = Storage.addTodo({ text, category, priority });
+    const newTodo = Storage.addTodo({ text, category, priority, isRecurring });
     input.value = '';
+    $('#recurring-checkbox').checked = false;
+    $('#recurring-hint').style.display = 'none';
     input.focus();
     render(newTodo.id);
   }
@@ -96,9 +132,14 @@ window.App = (function () {
   function render(newTodoId) {
     const todos = Storage.getTodos();
 
-    const filtered = currentFilter === '전체'
-      ? todos
-      : todos.filter((t) => t.category === currentFilter);
+    let filtered;
+    if (currentFilter === '전체') {
+      filtered = todos;
+    } else if (currentFilter === 'recurring') {
+      filtered = todos.filter((t) => t.isRecurring);
+    } else {
+      filtered = todos.filter((t) => t.category === currentFilter);
+    }
 
     filtered.sort((a, b) => {
       if (a.completed !== b.completed) return a.completed ? 1 : -1;
@@ -188,6 +229,9 @@ window.App = (function () {
     deleteBtn.textContent = '🗑️';
     deleteBtn.setAttribute('aria-label', todo.text + ' 삭제');
     deleteBtn.addEventListener('click', () => {
+      if (todo.isRecurring) {
+        if (!confirm('반복 할 일을 삭제하시겠습니까? 매일 리셋이 중단됩니다.')) return;
+      }
       item.classList.add('slide-out');
       setTimeout(() => {
         Storage.deleteTodo(todo.id);
@@ -195,7 +239,14 @@ window.App = (function () {
       }, 300);
     });
 
-    item.append(checkbox, label, text, badge, priority, editBtn, deleteBtn);
+    item.append(checkbox, label);
+    if (todo.isRecurring) {
+      const recurBadge = document.createElement('span');
+      recurBadge.className = 'todo-recurring-badge';
+      recurBadge.textContent = '🔁';
+      item.appendChild(recurBadge);
+    }
+    item.append(text, badge, priority, editBtn, deleteBtn);
     return item;
   }
 
@@ -207,6 +258,125 @@ window.App = (function () {
       Storage.clearCompleted();
       render();
     }
+  }
+
+  // D-Day 카드 렌더링
+  function renderDDays() {
+    const ddays = DDay.getDDays().filter((d) => d.isActive);
+    ddays.sort((a, b) => a.targetDate.localeCompare(b.targetDate));
+
+    const container = $('#dday-container');
+    const section = $('#dday-section');
+    container.innerHTML = '';
+
+    if (ddays.length === 0) {
+      section.style.display = 'none';
+      return;
+    }
+
+    section.style.display = 'flex';
+
+    ddays.forEach((d) => {
+      const diff = DDay.calculateDDay(d.targetDate);
+      const card = document.createElement('div');
+      card.className = 'dday-card';
+      if (diff === 0) card.classList.add('today');
+
+      const emoji = document.createElement('span');
+      emoji.className = 'dday-emoji';
+      emoji.textContent = d.emoji;
+
+      const title = document.createElement('span');
+      title.className = 'dday-title';
+      title.textContent = d.title;
+
+      const count = document.createElement('span');
+      count.className = 'dday-count';
+      if (diff === 0) {
+        count.textContent = '🔥 D-Day!';
+        count.classList.add('urgent');
+      } else {
+        count.textContent = DDay.formatDDay(diff);
+        if (diff > -8 && diff < 0) count.classList.add('urgent');
+      }
+
+      const deleteBtn = document.createElement('button');
+      deleteBtn.className = 'dday-delete';
+      deleteBtn.textContent = '×';
+      deleteBtn.dataset.id = d.id;
+      deleteBtn.setAttribute('aria-label', d.title + ' 삭제');
+      deleteBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (confirm(`"${d.title}" D-Day를 삭제하시겠습니까?`)) {
+          DDay.deleteDDay(d.id);
+          renderDDays();
+        }
+      });
+
+      card.append(emoji, title, count, deleteBtn);
+      container.appendChild(card);
+    });
+  }
+
+  // D-Day 추가 모달 열기
+  function openDDayModal() {
+    const activeDDays = DDay.getDDays().filter((d) => d.isActive);
+    if (activeDDays.length >= 3) {
+      alert('최대 3개까지 등록할 수 있습니다');
+      return;
+    }
+
+    // 수정 모드가 열려있으면 닫기
+    const editingItem = document.querySelector('.todo-item.editing');
+    if (editingItem) render();
+
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, '0');
+    const dd = String(today.getDate()).padStart(2, '0');
+    $('#dday-date-input').min = `${yyyy}-${mm}-${dd}`;
+
+    $('#dday-title-input').value = '';
+    $('#dday-date-input').value = '';
+    document.querySelectorAll('.emoji-btn').forEach((b) => b.classList.remove('active'));
+    document.querySelector('.emoji-btn').classList.add('active');
+
+    $('#dday-modal').style.display = 'flex';
+  }
+
+  // D-Day 추가 모달 닫기
+  function closeDDayModal() {
+    $('#dday-modal').style.display = 'none';
+  }
+
+  // D-Day 저장
+  function saveDDay() {
+    const title = $('#dday-title-input').value.trim();
+    const targetDate = $('#dday-date-input').value;
+
+    if (!title) {
+      $('#dday-title-input').focus();
+      return;
+    }
+
+    if (!targetDate) {
+      $('#dday-date-input').focus();
+      return;
+    }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    if (new Date(targetDate + 'T00:00:00') <= today) {
+      $('#dday-date-input').focus();
+      return;
+    }
+
+    const activeEmoji = document.querySelector('.emoji-btn.active');
+    const emoji = activeEmoji ? activeEmoji.dataset.emoji : '🎯';
+
+    DDay.addDDay({ title, targetDate, emoji });
+    closeDDayModal();
+    renderDDays();
   }
 
   // 인라인 수정 모드 진입 (텍스트, 카테고리, 우선순위 수정 가능)
@@ -276,6 +446,18 @@ window.App = (function () {
       editPriority.appendChild(opt);
     });
 
+    const editRecurring = document.createElement('label');
+    editRecurring.className = 'recurring-label';
+    editRecurring.style.fontSize = '12px';
+    const editRecurCheck = document.createElement('input');
+    editRecurCheck.type = 'checkbox';
+    editRecurCheck.className = 'recurring-checkbox';
+    editRecurCheck.checked = todo.isRecurring || false;
+    editRecurCheck.setAttribute('aria-label', '반복 여부 수정');
+    const editRecurText = document.createElement('span');
+    editRecurText.textContent = '🔁 반복';
+    editRecurring.append(editRecurCheck, editRecurText);
+
     const saveBtn = document.createElement('button');
     saveBtn.className = 'btn-edit';
     saveBtn.textContent = '✅';
@@ -288,7 +470,7 @@ window.App = (function () {
     cancelBtn.setAttribute('aria-label', '수정 취소');
     cancelBtn.addEventListener('click', () => render());
 
-    textEl.after(editInput, editCategory, editPriority, saveBtn, cancelBtn);
+    textEl.after(editInput, editCategory, editPriority, editRecurring, saveBtn, cancelBtn);
     editInput.focus();
 
     function saveEdit() {
@@ -298,6 +480,7 @@ window.App = (function () {
         text: newText,
         category: editCategory.value,
         priority: editPriority.value,
+        isRecurring: editRecurCheck.checked,
       });
       render();
     }

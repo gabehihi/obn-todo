@@ -1,4 +1,5 @@
 // storage.js: localStorage 래퍼 - 할 일 데이터 CRUD
+// OBN v2.0 - 스마트 푸시 알림, 반복 할 일, D-Day 카운트다운, 커스텀 아이콘
 
 window.Storage = (function () {
   const STORAGE_KEY = 'obn-todos';
@@ -13,6 +14,15 @@ window.Storage = (function () {
       var v = c === 'x' ? r : (r & 0x3) | 0x8;
       return v.toString(16);
     });
+  }
+
+  // 오늘 날짜를 'YYYY-MM-DD' 형식으로 반환
+  function getTodayString() {
+    const d = new Date();
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
   }
 
   // localStorage에서 할 일 배열 조회
@@ -45,6 +55,8 @@ window.Storage = (function () {
       completed: false,
       createdAt: new Date().toISOString(),
       completedAt: null,
+      isRecurring: todoData.isRecurring || false,
+      lastResetDate: todoData.isRecurring ? getTodayString() : null,
     };
     todos.push(todo);
     saveTodos(todos);
@@ -85,6 +97,25 @@ window.Storage = (function () {
     saveTodos(todos);
   }
 
+  // 반복 할 일 매일 자정 리셋
+  function resetRecurringTodos() {
+    const todos = getTodos();
+    const today = getTodayString();
+    let changed = false;
+
+    todos.forEach((t) => {
+      if (t.isRecurring && t.lastResetDate !== today) {
+        t.completed = false;
+        t.completedAt = null;
+        t.lastResetDate = today;
+        changed = true;
+      }
+    });
+
+    if (changed) saveTodos(todos);
+    return changed;
+  }
+
   // 통계 반환 (전체, 완료, 미완료, 진행률)
   function getStats() {
     const todos = getTodos();
@@ -104,5 +135,6 @@ window.Storage = (function () {
     toggleTodo,
     clearCompleted,
     getStats,
+    resetRecurringTodos,
   };
 })();
