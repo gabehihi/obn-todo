@@ -1,8 +1,10 @@
 // app.js: 메인 애플리케이션 로직 - UI 렌더링 및 이벤트 처리
-// OBN v2.1 - D-Day 버그 수정, 캐시 갱신
+// OBN v2.2 - 주간 달력, 바텀시트, 날짜 기반 계획
 
 window.App = (function () {
   let currentFilter = '전체';
+  let userManualCategory = false;
+  let selectedDate = null; // 달력에서 선택된 날짜 (YYYY-MM-DD)
 
   // 카테고리 설정: 라벨, 아이콘, 색상
   const CATEGORIES = {
@@ -15,6 +17,43 @@ window.App = (function () {
     '약 복용': { label: '약 복용', icon: '💊', color: '#1ABC9C' },
   };
 
+  // 카테고리별 키워드 매핑 (자동 분류용)
+  const CATEGORY_KEYWORDS = {
+    직장: ['회의', '출근', '퇴근', '보고', '업무', '프로젝트', '미팅', '출장', '야근', '회사', '사무실', '발표', '메일', '이메일', '상사', '팀장', '부장', '대리', '거래처', '계약', '서류'],
+    공부: ['공부', '시험', '과제', '독서', '책', '강의', '수업', '학교', '학원', '영어', '수학', '토익', '자격증', '논문', '리포트', '숙제', '복습', '예습', '암기', '문제풀이'],
+    운동: ['운동', '헬스', '러닝', '달리기', '산책', '조깅', '요가', '필라테스', '수영', '등산', '자전거', '스트레칭', '체육관', '피트니스', '근력', '유산소', '홈트', '플랭크', '스쿼트', '축구', '농구', '테니스', '배드민턴', '골프'],
+    식사: ['밥', '식사', '점심', '저녁', '아침', '간식', '커피', '브런치', '도시락', '배달', '요리', '장보기', '마트', '반찬', '메뉴', '외식', '맛집', '디저트', '카페'],
+    약속: ['약속', '만나', '만남', '모임', '친구', '데이트', '소개팅', '동창', '선약', '미용실', '병원', '치과', '안과', '피부과', '상담', '면접', '인터뷰'],
+    행사: ['행사', '파티', '생일', '결혼', '축하', '기념일', '졸업', '입학', '세미나', '컨퍼런스', '페스티벌', '축제', '공연', '콘서트', '전시', '이벤트', '워크숍', '송별회', '환영회'],
+    '약 복용': ['약', '복용', '비타민', '영양제', '처방', '알약', '유산균', '오메가', '철분', '칼슘', '혈압약', '감기약', '진통제', '연고', '안약']
+  };
+
+  // 텍스트에서 카테고리 자동 감지
+  function detectCategory(text) {
+    const normalized = text.toLowerCase().trim();
+    for (const [category, keywords] of Object.entries(CATEGORY_KEYWORDS)) {
+      for (const keyword of keywords) {
+        if (normalized.includes(keyword)) {
+          return category;
+        }
+      }
+    }
+    return null;
+  }
+
+  // 바텀시트 select value ↔ 한글 카테고리 매핑
+  const CATEGORY_VALUE_MAP = {
+    '직장': 'work', '공부': 'study', '운동': 'exercise', '식사': 'meal',
+    '약속': 'appointment', '행사': 'event', '약 복용': 'medicine',
+  };
+  const CATEGORY_LABEL_MAP = {
+    work: '직장', study: '공부', exercise: '운동', meal: '식사',
+    appointment: '약속', event: '행사', medicine: '약 복용',
+  };
+
+  // 우선순위 매핑
+  const PRIORITY_LABEL_MAP = { high: '높음', medium: '중간', low: '낮음' };
+
   // 우선순위 아이콘 매핑
   const PRIORITY_ICONS = { '높음': '🔴', '중간': '🟡', '낮음': '🟢' };
 
@@ -23,19 +62,33 @@ window.App = (function () {
 
   const $ = (sel) => document.querySelector(sel);
 
-  // 오늘 날짜를 "YYYY년 M월 D일 요일" 형식으로 표시
+  // 헤더 날짜 표시 (selectedDate 기준, 오늘이면 "(오늘)" 표시)
   function updateDate() {
     const today = new Date();
+    const todayStr = Storage.getTodayString();
     const days = ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일'];
-    const dateStr = `${today.getFullYear()}년 ${today.getMonth() + 1}월 ${today.getDate()}일 ${days[today.getDay()]}`;
-    $('#today-date').textContent = dateStr;
+
+    if (selectedDate && selectedDate !== todayStr) {
+      const d = new Date(selectedDate + 'T00:00:00');
+      const dateStr = `${d.getFullYear()}년 ${d.getMonth() + 1}월 ${d.getDate()}일 ${days[d.getDay()]}`;
+      $('#today-date').textContent = dateStr;
+    } else {
+      const dateStr = `${today.getFullYear()}년 ${today.getMonth() + 1}월 ${today.getDate()}일 ${days[today.getDay()]} (오늘)`;
+      $('#today-date').textContent = dateStr;
+    }
     return today.getDate();
   }
 
   // 앱 초기화: 날짜 표시, 이벤트 리스너 등록, 렌더링
   function init() {
+    // 기존 데이터에 scheduledDate가 없는 항목 마이그레이션
+    Storage.migrateTodos();
+
     // 반복 할 일 리셋 (날짜가 바뀌었으면 완료 초기화)
     Storage.resetRecurringTodos();
+
+    // selectedDate를 오늘로 초기화
+    selectedDate = Storage.getTodayString();
 
     let currentDay = updateDate();
     setInterval(() => {
@@ -47,16 +100,49 @@ window.App = (function () {
       }
     }, 60000);
 
-    $('#add-btn').addEventListener('click', handleAdd);
-    const todoInput = $('#todo-input');
-    todoInput.addEventListener('keydown', (e) => {
+    // 바텀시트 이벤트 리스너
+    $('#fab-plan').addEventListener('click', () => openPlanSheet(null));
+    $('#btn-plan-close').addEventListener('click', closePlanSheet);
+    $('#plan-overlay').addEventListener('click', closePlanSheet);
+    $('#btn-plan-add').addEventListener('click', handleAdd);
+    $('#plan-todo-input').addEventListener('keydown', (e) => {
       if (e.key === 'Enter') handleAdd();
     });
 
-    todoInput.addEventListener('focus', () => {
-      setTimeout(() => {
-        todoInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }, 300);
+    // 키워드 기반 자동 카테고리 분류
+    const planInput = $('#plan-todo-input');
+    const planCategory = $('#plan-category');
+
+    planCategory.addEventListener('change', () => {
+      userManualCategory = true;
+    });
+
+    planInput.addEventListener('input', () => {
+      if (userManualCategory) return;
+      const detected = detectCategory(planInput.value);
+      if (detected) {
+        const mapped = CATEGORY_VALUE_MAP[detected];
+        if (mapped && planCategory.value !== mapped) {
+          planCategory.value = mapped;
+          planCategory.classList.remove('category-auto-detected');
+          void planCategory.offsetWidth;
+          planCategory.classList.add('category-auto-detected');
+        }
+      }
+    });
+
+    // Escape 키로 바텀시트 닫기
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        const sheet = $('#plan-sheet');
+        if (sheet.classList.contains('active')) {
+          closePlanSheet();
+          return;
+        }
+        if ($('#dday-modal').style.display !== 'none') {
+          closeDDayModal();
+        }
+      }
     });
 
     document.querySelectorAll('.filter-tab').forEach((tab) => {
@@ -69,11 +155,6 @@ window.App = (function () {
     });
 
     $('#clear-completed-btn').addEventListener('click', clearCompleted);
-
-    // 반복 체크박스 토글
-    $('#recurring-checkbox').addEventListener('change', (e) => {
-      $('#recurring-hint').style.display = e.target.checked ? 'inline' : 'none';
-    });
 
     // D-Day 초기화
     DDay.checkExpired();
@@ -90,10 +171,36 @@ window.App = (function () {
         btn.classList.add('active');
       });
     });
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && $('#dday-modal').style.display !== 'none') {
-        closeDDayModal();
-      }
+
+    // 주간 달력 초기화
+    if (window.Weekly) {
+      Weekly.init();
+
+      // 달력에서 날짜 클릭 → 바텀시트 열기 (해당 날짜로)
+      Weekly.setOnDateClick(function (dateString) {
+        openPlanSheet(dateString);
+      });
+
+      // 달력에서 날짜 선택 변경 → 할 일 리스트 필터링
+      Weekly.setOnDateSelect(function (dateString) {
+        selectedDate = dateString;
+        render();
+      });
+
+      Weekly.render();
+    }
+
+    // 주 이동 버튼 이벤트
+    var btnPrevWeek = document.getElementById('btn-prev-week');
+    var btnNextWeek = document.getElementById('btn-next-week');
+    var btnWeekRange = document.getElementById('btn-week-range');
+
+    if (btnPrevWeek) btnPrevWeek.addEventListener('click', function () { Weekly.goToPrevWeek(); render(); });
+    if (btnNextWeek) btnNextWeek.addEventListener('click', function () { Weekly.goToNextWeek(); render(); });
+    if (btnWeekRange) btnWeekRange.addEventListener('click', function () {
+      Weekly.goToCurrentWeek();
+      selectedDate = Storage.getTodayString();
+      render();
     });
 
     render();
@@ -104,48 +211,111 @@ window.App = (function () {
 
   }
 
+  // 바텀시트 열기
+  function openPlanSheet(date) {
+    const today = Storage.getTodayString();
+    const dateValue = date || today;
+
+    // D-Day 모달이 열려있으면 닫기
+    if ($('#dday-modal').style.display !== 'none') closeDDayModal();
+
+    $('#plan-todo-input').value = '';
+    $('#plan-date-input').value = dateValue;
+    $('#plan-recurring').checked = false;
+    userManualCategory = false;
+
+    // 선택된 날짜 갱신 → 리스트/헤더/진행률을 해당 날짜 기준으로 표시
+    if (selectedDate !== dateValue) {
+      selectedDate = dateValue;
+      render();
+    }
+
+    const overlay = $('#plan-overlay');
+    const sheet = $('#plan-sheet');
+
+    overlay.style.display = 'block';
+    sheet.style.display = 'block';
+
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        overlay.classList.add('active');
+        sheet.classList.add('active');
+      });
+    });
+
+    document.body.classList.add('sheet-open');
+    setTimeout(() => $('#plan-todo-input').focus(), 350);
+  }
+
+  // 바텀시트 닫기
+  function closePlanSheet() {
+    const overlay = $('#plan-overlay');
+    const sheet = $('#plan-sheet');
+
+    overlay.classList.remove('active');
+    sheet.classList.remove('active');
+    document.body.classList.remove('sheet-open');
+
+    setTimeout(() => {
+      overlay.style.display = 'none';
+      sheet.style.display = 'none';
+    }, 350);
+  }
+
   // 입력값을 검증하고 할 일 추가
   function handleAdd() {
-    const input = $('#todo-input');
+    const input = $('#plan-todo-input');
     const text = input.value.trim();
 
     if (!text) {
       input.focus();
+      input.classList.add('shake');
       input.style.borderColor = '#E74C3C';
-      setTimeout(() => { input.style.borderColor = ''; }, 800);
+      setTimeout(() => {
+        input.style.borderColor = '';
+        input.classList.remove('shake');
+      }, 600);
       return;
     }
 
-    const category = $('#category-select').value;
-    const priority = $('#priority-select').value;
-    const isRecurring = $('#recurring-checkbox').checked;
+    const categoryKey = $('#plan-category').value;
+    const priorityKey = $('#plan-priority').value;
+    const category = CATEGORY_LABEL_MAP[categoryKey] || '직장';
+    const priority = PRIORITY_LABEL_MAP[priorityKey] || '중간';
+    const isRecurring = $('#plan-recurring').checked;
+    const scheduledDate = $('#plan-date-input').value || Storage.getTodayString();
 
-    const newTodo = Storage.addTodo({ text, category, priority, isRecurring });
-    input.value = '';
-    $('#recurring-checkbox').checked = false;
-    $('#recurring-hint').style.display = 'none';
-    input.focus();
+    const newTodo = Storage.addTodo({ text, category, priority, isRecurring, scheduledDate });
+    userManualCategory = false;
+
+    // 추가한 날짜로 selectedDate 설정하여 바로 보이도록
+    selectedDate = scheduledDate;
+
+    closePlanSheet();
     render(newTodo.id);
   }
 
   // 할 일 목록을 필터링, 정렬, DOM에 렌더링
   function render(newTodoId) {
-    const todos = Storage.getTodos();
+    // 축1: 날짜 필터링
+    let filtered = selectedDate
+      ? Storage.getTodosByDate(selectedDate)
+      : Storage.getTodos();
 
-    let filtered;
-    if (currentFilter === '전체') {
-      filtered = todos;
-    } else if (currentFilter === 'recurring') {
-      filtered = todos.filter((t) => t.isRecurring);
-    } else {
-      filtered = todos.filter((t) => t.category === currentFilter);
+    // 축2: 카테고리 필터링
+    if (currentFilter === 'recurring') {
+      filtered = filtered.filter((t) => t.isRecurring);
+    } else if (currentFilter !== '전체') {
+      filtered = filtered.filter((t) => t.category === currentFilter);
     }
 
+    // 정렬: 미완료 우선 → 우선순위 (높음 > 중간 > 낮음)
     filtered.sort((a, b) => {
       if (a.completed !== b.completed) return a.completed ? 1 : -1;
       return (PRIORITY_ORDER[a.priority] || 1) - (PRIORITY_ORDER[b.priority] || 1);
     });
 
+    updateDate();
     updateProgress();
 
     const listEl = $('#todo-list');
@@ -154,7 +324,9 @@ window.App = (function () {
     if (filtered.length === 0) {
       const emptyMsg = document.createElement('p');
       emptyMsg.className = 'empty-message';
-      emptyMsg.textContent = '오늘 할 일을 추가해보세요! ✨';
+      emptyMsg.textContent = selectedDate
+        ? '이 날은 계획이 없습니다. 🗓 계획을 추가해보세요!'
+        : '오늘 할 일을 추가해보세요! ✨';
       listEl.appendChild(emptyMsg);
     } else {
       filtered.forEach((todo) => {
@@ -165,17 +337,34 @@ window.App = (function () {
         listEl.appendChild(el);
       });
     }
+
+    // 주간 달력 스케줄 바 갱신
+    if (window.Weekly) Weekly.render();
   }
 
-  // 프로그레스 바와 텍스트 업데이트
+  // 프로그레스 바와 텍스트 업데이트 (selectedDate 기준)
   function updateProgress() {
-    const stats = Storage.getStats();
+    let todos;
+    let dateLabel = '';
+
+    if (selectedDate) {
+      todos = Storage.getTodosByDate(selectedDate);
+      const d = new Date(selectedDate + 'T00:00:00');
+      dateLabel = `${d.getMonth() + 1}/${d.getDate()} 기준 — `;
+    } else {
+      todos = Storage.getTodos();
+    }
+
+    const total = todos.length;
+    const completed = todos.filter((t) => t.completed).length;
+    const percentage = total === 0 ? 0 : Math.round((completed / total) * 100);
+
     const wrapper = document.querySelector('.progress-wrapper');
     if (wrapper) {
-      wrapper.setAttribute('aria-valuenow', stats.percentage);
+      wrapper.setAttribute('aria-valuenow', percentage);
     }
-    $('#progress-fill').style.width = stats.percentage + '%';
-    $('#progress-text').textContent = `${stats.completed}/${stats.total} 완료 (${stats.percentage}%)`;
+    $('#progress-fill').style.width = percentage + '%';
+    $('#progress-text').textContent = `${dateLabel}${completed}/${total} 완료 (${percentage}%)`;
   }
 
   // 할 일 아이템 DOM 요소 생성
@@ -307,6 +496,7 @@ window.App = (function () {
         if (confirm(`"${d.title}" D-Day를 삭제하시겠습니까?`)) {
           DDay.deleteDDay(d.id);
           renderDDays();
+          if (window.Weekly) Weekly.render();
         }
       });
 
@@ -322,6 +512,9 @@ window.App = (function () {
       alert('최대 3개까지 등록할 수 있습니다');
       return;
     }
+
+    // 바텀시트가 열려있으면 닫기
+    if ($('#plan-sheet').classList.contains('active')) closePlanSheet();
 
     // 수정 모드가 열려있으면 닫기
     const editingItem = document.querySelector('.todo-item.editing');
@@ -375,6 +568,7 @@ window.App = (function () {
     DDay.addDDay({ title, targetDate, emoji });
     closeDDayModal();
     renderDDays();
+    if (window.Weekly) Weekly.render();
   }
 
   // 인라인 수정 모드 진입 (텍스트, 카테고리, 우선순위 수정 가능)
@@ -491,5 +685,5 @@ window.App = (function () {
 
   document.addEventListener('DOMContentLoaded', init);
 
-  return { render };
+  return { render, openPlanSheet, closePlanSheet };
 })();

@@ -1,5 +1,5 @@
 /* style.css: 스타일시트 (미니멀 화이트 디자인) */
-/* OBN v2.1 - D-Day 버그 수정, 캐시 갱신 */
+/* OBN v2.2 - 주간 달력, 바텀시트, 날짜 기반 계획 */
 
 /* ============================
    CSS 변수 정의
@@ -126,110 +126,441 @@ body {
 }
 
 /* ============================
-   입력 영역
+   주간 달력
    ============================ */
-#input-section {
-  padding: 16px 20px;
+#weekly-calendar {
+  padding: 12px 20px 8px;
+  background: white;
+  border-bottom: 1px solid var(--border);
+}
+
+/* 주 네비게이션 */
+.week-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.week-nav-btn {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  width: 36px;
+  height: 36px;
+  font-size: 20px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.week-nav-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.week-range-btn {
+  background: none;
+  border: none;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+  cursor: pointer;
+  padding: 6px 12px;
+  border-radius: 8px;
+  transition: background 0.2s;
+  font-family: inherit;
+}
+
+.week-range-btn:hover {
   background: var(--bg-secondary);
 }
 
-#todo-input {
+/* 주간 그리드 */
+.week-grid {
   width: 100%;
-  padding: 12px 16px;
-  border: 1.5px solid var(--border);
-  border-radius: var(--radius);
-  font-size: 16px;
-  font-family: inherit;
-  margin-bottom: 10px;
-  transition: border-color 0.3s ease;
 }
 
-#todo-input:focus {
-  border-color: var(--accent);
-  outline: none;
-  box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+.week-header {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  text-align: center;
+  margin-bottom: 6px;
 }
 
-#input-section .input-options {
-  display: flex;
-  flex-direction: row;
-  gap: 8px;
-}
-
-#category-select,
-#priority-select {
-  flex: 1;
-  padding: 10px 12px;
-  border: 1.5px solid var(--border);
-  border-radius: var(--radius);
-  font-size: 14px;
-  font-family: inherit;
-  background: white;
-  appearance: none;
-  cursor: pointer;
-  min-height: 44px;
-}
-
-#add-btn {
-  padding: 12px 16px;
-  background: var(--accent);
-  color: white;
-  border: none;
-  border-radius: var(--radius);
-  font-size: 15px;
+.week-day-label {
+  font-size: 12px;
   font-weight: 600;
-  font-family: inherit;
+  color: var(--text-secondary);
+  padding: 2px 0;
+}
+
+.week-day-label.sat {
+  color: #3498DB;
+}
+
+.week-day-label.sun {
+  color: #E74C3C;
+}
+
+/* 날짜 행 */
+#week-dates-row {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+  margin-bottom: 6px;
+}
+
+.week-date-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 6px 2px;
+  border-radius: 12px;
   cursor: pointer;
-  min-height: 44px;
-  min-width: 44px;
+  transition: all 0.2s;
+  position: relative;
 }
 
-#add-btn:hover {
-  background: #2980B9;
+.week-date-cell:hover {
+  background: var(--bg-secondary);
 }
 
-#add-btn:active {
-  transform: scale(0.98);
-}
-
-/* 반복 토글 */
-.recurring-toggle {
+.week-date-num {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text-primary);
+  width: 32px;
+  height: 32px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 6px 0;
+  justify-content: center;
+  border-radius: 50%;
 }
 
-.recurring-label {
+/* 오늘 날짜 */
+.week-date-cell.today .week-date-num {
+  background: var(--accent);
+  color: white;
+  font-weight: 700;
+}
+
+/* 선택된 날짜 */
+.week-date-cell.selected {
+  background: rgba(52, 152, 219, 0.08);
+}
+
+.week-date-cell.selected:not(.today) .week-date-num {
+  border: 2px solid var(--accent);
+  color: var(--accent);
+  font-weight: 700;
+}
+
+/* 이번 달이 아닌 날짜 */
+.week-date-cell.other-month .week-date-num {
+  color: var(--text-secondary);
+  opacity: 0.4;
+}
+
+/* 토/일 색상 (오늘이 아닐 때) */
+.week-date-cell.sat:not(.today) .week-date-num {
+  color: #3498DB;
+}
+
+.week-date-cell.sun:not(.today) .week-date-num {
+  color: #E74C3C;
+}
+
+/* 할 일 있음 도트 */
+.week-date-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--accent);
+  margin-top: 3px;
+}
+
+/* D-Day 마커 */
+.week-dday-marker {
+  font-size: 9px;
+  margin-top: 2px;
+  color: #3498DB;
+  font-weight: 700;
+}
+
+.week-dday-marker.dday-today {
+  color: #E74C3C;
+}
+
+.week-dday-marker.dday-past {
+  color: var(--text-secondary);
+}
+
+/* 스케줄 바 행 */
+#week-schedules-row {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+  min-height: 36px;
+}
+
+.week-schedule-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 2px;
+}
+
+.schedule-bar {
+  height: 4px;
+  border-radius: 2px;
+  width: 100%;
+  opacity: 0.7;
+}
+
+.schedule-bar.cat-work { background: #3498DB; }
+.schedule-bar.cat-study { background: #9B59B6; }
+.schedule-bar.cat-exercise { background: #2ECC71; }
+.schedule-bar.cat-meal { background: #E67E22; }
+.schedule-bar.cat-appointment { background: #E74C3C; }
+.schedule-bar.cat-event { background: #F1C40F; }
+.schedule-bar.cat-medicine { background: #1ABC9C; }
+
+.schedule-bar.recurring {
+  opacity: 0.4;
+  background-image: repeating-linear-gradient(
+    90deg,
+    transparent,
+    transparent 3px,
+    rgba(255,255,255,0.5) 3px,
+    rgba(255,255,255,0.5) 5px
+  );
+}
+
+.schedule-more {
+  font-size: 10px;
+  color: var(--text-secondary);
+  text-align: center;
+  line-height: 1;
+}
+
+/* ============================
+   FAB 버튼 (계획 추가)
+   ============================ */
+.fab-plan {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  width: auto;
+  padding: 14px 22px;
+  background: var(--accent, #3498DB);
+  color: white;
+  border: none;
+  border-radius: 28px;
+  box-shadow: 0 4px 16px rgba(52, 152, 219, 0.35);
+  cursor: pointer;
+  z-index: 100;
   display: flex;
   align-items: center;
   gap: 6px;
-  cursor: pointer;
+  font-size: 15px;
+  font-weight: 600;
+  font-family: inherit;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.fab-plan:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(52, 152, 219, 0.45);
+}
+
+.fab-plan:active {
+  transform: scale(0.95);
+}
+
+.fab-icon {
+  font-size: 18px;
+}
+
+.fab-text {
   font-size: 14px;
-  color: var(--text-primary);
+  font-weight: 600;
+}
+
+/* ============================
+   바텀시트 (계획 추가)
+   ============================ */
+.plan-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 200;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.plan-overlay.active {
+  opacity: 1;
+}
+
+.plan-sheet {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: white;
+  border-radius: 20px 20px 0 0;
+  box-shadow: 0 -4px 30px rgba(0, 0, 0, 0.12);
+  z-index: 201;
+  max-height: 85vh;
+  overflow-y: auto;
+  transform: translateY(100%);
+  transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+.plan-sheet.active {
+  transform: translateY(0);
+}
+
+.plan-sheet-handle {
+  display: flex;
+  justify-content: center;
+  padding: 12px 0 4px;
+}
+
+.plan-handle-bar {
+  width: 40px;
+  height: 4px;
+  background: #DDD;
+  border-radius: 2px;
+}
+
+.plan-sheet-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 20px 12px;
+}
+
+.plan-sheet-title {
+  font-size: 17px;
+  font-weight: 700;
+  margin: 0;
+}
+
+.plan-close-btn {
+  background: none;
+  border: none;
+  font-size: 20px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 4px 8px;
+}
+
+.plan-sheet-body {
+  padding: 0 20px 32px;
+}
+
+.plan-field {
+  margin-bottom: 14px;
+}
+
+.plan-field-half {
+  flex: 1;
+}
+
+.plan-row {
+  display: flex;
+  gap: 10px;
+}
+
+.plan-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+}
+
+.plan-input {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1.5px solid var(--border, #E9ECEF);
+  border-radius: 10px;
+  font-size: 15px;
+  box-sizing: border-box;
+  transition: border-color 0.2s;
+  font-family: inherit;
+}
+
+.plan-input:focus {
+  border-color: var(--accent);
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.08);
+}
+
+.plan-select {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  font-size: 14px;
+  background: white;
+  appearance: none;
+  cursor: pointer;
+  font-family: inherit;
+  box-sizing: border-box;
+}
+
+.plan-recurring-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  cursor: pointer;
   user-select: none;
 }
 
-.recurring-checkbox {
+.plan-recurring-check {
   width: 18px;
   height: 18px;
   accent-color: var(--accent);
-  cursor: pointer;
 }
 
-.recurring-icon {
+.plan-add-btn {
+  width: 100%;
+  padding: 14px;
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: 12px;
   font-size: 16px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  margin-top: 6px;
+  transition: background 0.2s;
 }
 
-.recurring-text {
-  font-size: 14px;
-  font-weight: 500;
+.plan-add-btn:hover {
+  background: #2980B9;
 }
 
-.recurring-hint {
-  font-size: 12px;
-  color: var(--accent);
-  animation: fadeIn 0.3s ease;
+.plan-add-btn:active {
+  transform: scale(0.98);
+}
+
+/* 바텀시트 열릴 때 body 스크롤 방지 */
+body.sheet-open {
+  overflow: hidden;
 }
 
 .todo-recurring-badge {
@@ -411,7 +742,7 @@ body {
    ============================ */
 #footer-actions {
   padding: 16px 20px;
-  padding-bottom: calc(16px + env(safe-area-inset-bottom, 0));
+  padding-bottom: calc(80px + env(safe-area-inset-bottom, 0));
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -486,12 +817,58 @@ body {
     box-shadow: none;
   }
 
-  #input-section .input-options {
-    flex-direction: column;
+  .fab-plan {
+    bottom: 16px;
+    right: 16px;
+    padding: 12px 18px;
   }
 
-  #add-btn {
-    width: 100%;
+  .plan-sheet {
+    max-height: 90vh;
+  }
+
+  .plan-row {
+    flex-direction: column;
+    gap: 0;
+  }
+
+  #weekly-calendar {
+    padding: 10px 12px 6px;
+  }
+
+  .week-date-num {
+    width: 28px;
+    height: 28px;
+    font-size: 13px;
+  }
+
+  .week-date-cell {
+    padding: 4px 1px;
+  }
+
+  #week-dates-row {
+    gap: 2px;
+  }
+
+  #week-schedules-row {
+    gap: 2px;
+  }
+
+  .week-nav-btn {
+    width: 32px;
+    height: 32px;
+  }
+
+  .week-range-btn {
+    font-size: 13px;
+  }
+
+  .week-day-label {
+    font-size: 11px;
+  }
+
+  .week-dday-marker {
+    font-size: 8px;
   }
 
   .todo-item {
@@ -538,7 +915,7 @@ body {
   }
 }
 
-/* 데스크톱 그림자 강화 */
+/* 데스크톱 그림자 강화 + 바텀시트 중앙 정렬 */
 @media (min-width: 641px) {
   #app {
     box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
@@ -546,6 +923,16 @@ body {
     margin-top: 20px;
     margin-bottom: 20px;
     min-height: calc(100vh - 40px);
+  }
+
+  .plan-sheet {
+    left: 50%;
+    transform: translateX(-50%) translateY(100%);
+    width: 640px;
+  }
+
+  .plan-sheet.active {
+    transform: translateX(-50%) translateY(0);
   }
 }
 
@@ -808,6 +1195,30 @@ body {
 @keyframes strikethrough {
   from { background-size: 0 1.5px; }
   to { background-size: 100% 1.5px; }
+}
+
+/* shake 애니메이션 (입력 검증 실패 시) */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-6px); }
+  40% { transform: translateX(6px); }
+  60% { transform: translateX(-4px); }
+  80% { transform: translateX(4px); }
+}
+
+.shake {
+  animation: shake 0.4s ease;
+}
+
+/* 카테고리 자동 감지 피드백 */
+@keyframes categoryPulse {
+  0% { box-shadow: 0 0 0 0 rgba(52, 152, 219, 0.5); }
+  70% { box-shadow: 0 0 0 8px rgba(52, 152, 219, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(52, 152, 219, 0); }
+}
+
+.category-auto-detected {
+  animation: categoryPulse 0.6s ease-out;
 }
 
 /* 7. 빈 상태 fade-in */

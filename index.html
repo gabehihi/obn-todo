@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="오늘뿐인 나(OBN) - 스마트 투두 리마인더. D-Day 카운트다운, 반복 할 일, 푸시 알림으로 오늘 하루를 완벽하게.">
+  <meta name="description" content="오늘뿐인 나(OBN) - 스마트 투두 리마인더. 주간 달력, D-Day 카운트다운, 반복 할 일, 푸시 알림으로 오늘 하루를 완벽하게.">
   <meta property="og:title" content="오늘뿐인 나 (OBN)">
-  <meta property="og:description" content="스마트 투두 리마인더. D-Day 카운트다운, 반복 할 일, 푸시 알림으로 오늘 하루를 완벽하게.">
+  <meta property="og:description" content="스마트 투두 리마인더. 주간 달력, D-Day 카운트다운, 반복 할 일, 푸시 알림으로 오늘 하루를 완벽하게.">
   <meta property="og:type" content="website">
   <meta name="theme-color" content="#3498DB">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -43,38 +43,31 @@
       </div>
     </header>
 
-    <!-- 입력: 할 일 텍스트, 카테고리, 우선순위, 추가 버튼 -->
-    <section id="input-section" aria-label="할 일 입력">
-      <label for="todo-input" class="sr-only">할 일 내용</label>
-      <input type="text" id="todo-input" placeholder="오늘 할 일을 입력하세요" maxlength="100">
-      <div class="input-options">
-        <label for="category-select" class="sr-only">카테고리</label>
-        <select id="category-select" aria-label="카테고리 선택">
-          <option value="직장">🏢 직장</option>
-          <option value="공부">📚 공부</option>
-          <option value="운동">🏋️ 운동</option>
-          <option value="식사">🍜 식사</option>
-          <option value="약속">🤝 약속</option>
-          <option value="행사">🎉 행사</option>
-          <option value="약 복용">💊 약 복용</option>
-        </select>
-        <label for="priority-select" class="sr-only">우선순위</label>
-        <select id="priority-select" aria-label="우선순위 선택">
-          <option value="높음">높음</option>
-          <option value="중간" selected>중간</option>
-          <option value="낮음">낮음</option>
-        </select>
-        <button id="add-btn" aria-label="할 일 추가">추가</button>
+    <!-- 주간 달력 -->
+    <section id="weekly-calendar">
+      <div class="week-nav">
+        <button id="btn-prev-week" class="week-nav-btn" aria-label="이전 주">‹</button>
+        <button id="btn-week-range" class="week-range-btn" aria-label="이번 주로 이동">
+          <!-- JS에서 "2월 16일 ~ 22일" 텍스트 채움 -->
+        </button>
+        <button id="btn-next-week" class="week-nav-btn" aria-label="다음 주">›</button>
       </div>
-      <div class="recurring-toggle">
-        <label class="recurring-label">
-          <input type="checkbox" id="recurring-checkbox" class="recurring-checkbox">
-          <span class="recurring-icon">🔁</span>
-          <span class="recurring-text">매일 반복</span>
-        </label>
-        <span class="recurring-hint" id="recurring-hint" style="display:none;">
-          매일 자정에 자동 리셋됩니다
-        </span>
+      <div class="week-grid">
+        <div class="week-header">
+          <span class="week-day-label">월</span>
+          <span class="week-day-label">화</span>
+          <span class="week-day-label">수</span>
+          <span class="week-day-label">목</span>
+          <span class="week-day-label">금</span>
+          <span class="week-day-label sat">토</span>
+          <span class="week-day-label sun">일</span>
+        </div>
+        <div class="week-dates" id="week-dates-row">
+          <!-- JS에서 7개 날짜 셀 동적 생성 -->
+        </div>
+        <div class="week-schedules" id="week-schedules-row">
+          <!-- JS에서 각 날짜별 스케줄 바 동적 생성 -->
+        </div>
       </div>
     </section>
 
@@ -104,6 +97,64 @@
       <button id="notification-toggle" aria-label="알림 켜기/끄기">🔕 알림 OFF</button>
     </footer>
 
+    <!-- FAB: 계획 추가 버튼 -->
+    <button id="fab-plan" class="fab-plan" aria-label="계획 추가">
+      <span class="fab-icon">🗓</span>
+      <span class="fab-text">계획</span>
+    </button>
+
+  </div>
+
+  <!-- 계획 추가 바텀시트 -->
+  <div id="plan-overlay" class="plan-overlay" style="display:none;"></div>
+  <div id="plan-sheet" class="plan-sheet" style="display:none;">
+    <div class="plan-sheet-handle">
+      <div class="plan-handle-bar"></div>
+    </div>
+    <div class="plan-sheet-header">
+      <h3 class="plan-sheet-title">📝 계획 추가</h3>
+      <button id="btn-plan-close" class="plan-close-btn" aria-label="닫기">✕</button>
+    </div>
+    <div class="plan-sheet-body">
+      <div class="plan-field">
+        <label class="plan-label" for="plan-todo-input">할 일</label>
+        <input type="text" id="plan-todo-input" class="plan-input"
+               placeholder="할 일을 입력하세요" maxlength="100">
+      </div>
+      <div class="plan-field">
+        <label class="plan-label" for="plan-date-input">날짜</label>
+        <input type="date" id="plan-date-input" class="plan-input">
+      </div>
+      <div class="plan-row">
+        <div class="plan-field plan-field-half">
+          <label class="plan-label" for="plan-category">카테고리</label>
+          <select id="plan-category" class="plan-select">
+            <option value="work">🏢 직장</option>
+            <option value="study">📚 공부</option>
+            <option value="exercise">🏋️ 운동</option>
+            <option value="meal">🍜 식사</option>
+            <option value="appointment">🤝 약속</option>
+            <option value="event">🎉 행사</option>
+            <option value="medicine">💊 약 복용</option>
+          </select>
+        </div>
+        <div class="plan-field plan-field-half">
+          <label class="plan-label" for="plan-priority">우선순위</label>
+          <select id="plan-priority" class="plan-select">
+            <option value="high">🔴 높음</option>
+            <option value="medium" selected>🟡 중간</option>
+            <option value="low">🟢 낮음</option>
+          </select>
+        </div>
+      </div>
+      <div class="plan-field">
+        <label class="plan-recurring-label">
+          <input type="checkbox" id="plan-recurring" class="plan-recurring-check">
+          <span>🔁 매일 반복</span>
+        </label>
+      </div>
+      <button id="btn-plan-add" class="plan-add-btn">추가</button>
+    </div>
   </div>
 
   <!-- D-Day 추가 모달 -->
@@ -137,6 +188,7 @@
 
   <script src="storage.js"></script>
   <script src="dday.js"></script>
+  <script src="weekly.js"></script>
   <script src="app.js"></script>
   <script src="notification.js"></script>
   <script>

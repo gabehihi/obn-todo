@@ -1,5 +1,5 @@
 // storage.js: localStorage 래퍼 - 할 일 데이터 CRUD
-// OBN v2.1 - D-Day 버그 수정, 캐시 갱신
+// OBN v2.2 - scheduledDate 필드 추가, 날짜 기반 조회
 
 window.Storage = (function () {
   const STORAGE_KEY = 'obn-todos';
@@ -57,6 +57,7 @@ window.Storage = (function () {
       completedAt: null,
       isRecurring: todoData.isRecurring || false,
       lastResetDate: todoData.isRecurring ? getTodayString() : null,
+      scheduledDate: todoData.scheduledDate || getTodayString(),
     };
     todos.push(todo);
     saveTodos(todos);
@@ -116,6 +117,76 @@ window.Storage = (function () {
     return changed;
   }
 
+  // 기존 데이터에 scheduledDate가 없는 항목 마이그레이션
+  function migrateTodos() {
+    const todos = getTodos();
+    let changed = false;
+
+    todos.forEach((t) => {
+      if (!t.scheduledDate) {
+        if (t.createdAt) {
+          t.scheduledDate = t.createdAt.slice(0, 10);
+        } else {
+          t.scheduledDate = getTodayString();
+        }
+        changed = true;
+      }
+    });
+
+    if (changed) saveTodos(todos);
+  }
+
+  // 특정 날짜의 할 일 조회
+  function getTodosByDate(dateString) {
+    const todos = getTodos();
+    return todos.filter((t) => t.scheduledDate === dateString || t.isRecurring);
+  }
+
+  // 주간 범위의 할 일 조회 (날짜별 그룹)
+  function getTodosByWeek(startDate, endDate) {
+    const todos = getTodos();
+    const result = {};
+    const start = new Date(startDate + 'T00:00:00');
+    const end = new Date(endDate + 'T00:00:00');
+
+    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      const key = `${yyyy}-${mm}-${dd}`;
+      result[key] = [];
+    }
+
+    todos.forEach((t) => {
+      if (t.isRecurring) {
+        Object.keys(result).forEach((key) => {
+          result[key].push(t);
+        });
+      } else if (result.hasOwnProperty(t.scheduledDate)) {
+        result[t.scheduledDate].push(t);
+      }
+    });
+
+    return result;
+  }
+
+  // 기준 날짜가 포함된 주의 월~일 날짜 배열 반환 (한국식: 월요일 시작)
+  function getWeekDates(referenceDate) {
+    const ref = new Date(referenceDate);
+    const day = ref.getDay(); // 0(일)~6(토)
+    const diffToMonday = day === 0 ? -6 : 1 - day;
+    const monday = new Date(ref);
+    monday.setDate(ref.getDate() + diffToMonday);
+
+    const dates = [];
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(monday);
+      d.setDate(monday.getDate() + i);
+      dates.push(d);
+    }
+    return dates;
+  }
+
   // 통계 반환 (전체, 완료, 미완료, 진행률)
   function getStats() {
     const todos = getTodos();
@@ -136,5 +207,10 @@ window.Storage = (function () {
     clearCompleted,
     getStats,
     resetRecurringTodos,
+    migrateTodos,
+    getTodosByDate,
+    getTodosByWeek,
+    getWeekDates,
+    getTodayString,
   };
 })();

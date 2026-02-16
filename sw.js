@@ -1,7 +1,7 @@
 // sw.js: Service Worker - 오프라인 캐싱 + 푸시 알림
-// OBN v2.1 - D-Day 버그 수정, 캐시 갱신
+// OBN v2.2 - 주간 달력, 바텀시트, 날짜 기반 계획
 
-const CACHE_NAME = 'obn-todo-v2.1';
+const CACHE_NAME = 'obn-todo-v2.2';
 const ASSETS = [
   './',
   './index.html',
@@ -9,6 +9,7 @@ const ASSETS = [
   './app.js',
   './storage.js',
   './dday.js',
+  './weekly.js',
   './notification.js',
   './manifest.json',
   './icon-32.png',
