@@ -62,6 +62,18 @@ window.DDay = (function () {
     return newDDay;
   }
 
+  // 특정 D-Day 수정 (제목, 날짜, 이모지)
+  function updateDDay(id, updates) {
+    const ddays = getDDays();
+    const index = ddays.findIndex((d) => d.id === id);
+    if (index === -1) return null;
+    if (updates.title !== undefined) ddays[index].title = (updates.title || '').slice(0, MAX_TITLE);
+    if (updates.targetDate !== undefined) ddays[index].targetDate = updates.targetDate;
+    if (updates.emoji !== undefined) ddays[index].emoji = updates.emoji;
+    saveDDays(ddays);
+    return ddays[index];
+  }
+
   // 특정 D-Day 삭제
   function deleteDDay(id) {
     const ddays = getDDays().filter((d) => d.id !== id);
@@ -100,5 +112,5 @@ window.DDay = (function () {
     return ddays;
   }
 
-  return { getDDays, saveDDays, addDDay, deleteDDay, calculateDDay, formatDDay, checkExpired };
+  return { getDDays, saveDDays, addDDay, updateDDay, deleteDDay, calculateDDay, formatDDay, checkExpired };
 })();

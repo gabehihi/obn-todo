@@ -5,6 +5,7 @@ window.App = (function () {
   let currentFilter = '전체';
   let userManualCategory = false;
   let selectedDate = null; // 달력에서 선택된 날짜 (YYYY-MM-DD)
+  let editingDDayId = null; // D-Day 수정 중인 항목 ID (null이면 추가 모드)
 
   // 카테고리 설정: 라벨, 아이콘, 색상
   const CATEGORIES = {
@@ -455,7 +456,6 @@ window.App = (function () {
     ddays.sort((a, b) => a.targetDate.localeCompare(b.targetDate));
 
     const container = $('#dday-container');
-    const section = $('#dday-section');
     container.innerHTML = '';
 
     if (ddays.length === 0) {
@@ -489,7 +489,6 @@ window.App = (function () {
       const deleteBtn = document.createElement('button');
       deleteBtn.className = 'dday-delete';
       deleteBtn.textContent = '×';
-      deleteBtn.dataset.id = d.id;
       deleteBtn.setAttribute('aria-label', d.title + ' 삭제');
       deleteBtn.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -500,23 +499,32 @@ window.App = (function () {
         }
       });
 
+      // 카드 클릭 → 수정 모달 열기
+      card.style.cursor = 'pointer';
+      card.addEventListener('click', () => {
+        openDDayModal(d);
+      });
+
       card.append(emoji, title, count, deleteBtn);
       container.appendChild(card);
     });
   }
 
-  // D-Day 추가 모달 열기
-  function openDDayModal() {
-    const activeDDays = DDay.getDDays().filter((d) => d.isActive);
-    if (activeDDays.length >= 3) {
-      alert('최대 3개까지 등록할 수 있습니다');
-      return;
+  // D-Day 추가/수정 모달 열기 (ddayData가 있으면 수정 모드)
+  function openDDayModal(ddayData) {
+    // 추가 모드일 때 3개 제한 체크
+    if (!ddayData) {
+      const activeDDays = DDay.getDDays().filter((d) => d.isActive);
+      if (activeDDays.length >= 3) {
+        alert('최대 3개까지 등록할 수 있습니다');
+        return;
+      }
     }
 
     // 바텀시트가 열려있으면 닫기
     if ($('#plan-sheet').classList.contains('active')) closePlanSheet();
 
-    // 수정 모드가 열려있으면 닫기
+    // 할 일 수정 모드가 열려있으면 닫기
     const editingItem = document.querySelector('.todo-item.editing');
     if (editingItem) render();
 
@@ -527,20 +535,37 @@ window.App = (function () {
     const dd = String(tomorrow.getDate()).padStart(2, '0');
     $('#dday-date-input').min = `${yyyy}-${mm}-${dd}`;
 
-    $('#dday-title-input').value = '';
-    $('#dday-date-input').value = '';
-    document.querySelectorAll('.emoji-btn').forEach((b) => b.classList.remove('active'));
-    document.querySelector('.emoji-btn').classList.add('active');
+    if (ddayData) {
+      // 수정 모드: 기존 데이터로 채움
+      editingDDayId = ddayData.id;
+      $('.modal-title').textContent = '✏️ D-Day 수정';
+      $('#btn-dday-save').textContent = '수정';
+      $('#dday-title-input').value = ddayData.title;
+      $('#dday-date-input').value = ddayData.targetDate;
+      document.querySelectorAll('.emoji-btn').forEach((b) => {
+        b.classList.toggle('active', b.dataset.emoji === ddayData.emoji);
+      });
+    } else {
+      // 추가 모드: 빈 폼
+      editingDDayId = null;
+      $('.modal-title').textContent = '🎯 D-Day 추가';
+      $('#btn-dday-save').textContent = '저장';
+      $('#dday-title-input').value = '';
+      $('#dday-date-input').value = '';
+      document.querySelectorAll('.emoji-btn').forEach((b) => b.classList.remove('active'));
+      document.querySelector('.emoji-btn').classList.add('active');
+    }
 
     $('#dday-modal').style.display = 'flex';
   }
 
-  // D-Day 추가 모달 닫기
+  // D-Day 모달 닫기
   function closeDDayModal() {
     $('#dday-modal').style.display = 'none';
+    editingDDayId = null;
   }
 
-  // D-Day 저장
+  // D-Day 저장 (추가 또는 수정)
   function saveDDay() {
     const title = $('#dday-title-input').value.trim();
     const targetDate = $('#dday-date-input').value;
@@ -558,6 +583,7 @@ window.App = (function () {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     if (new Date(targetDate + 'T00:00:00') <= today) {
+      alert('목표 날짜는 오늘 이후여야 합니다.');
       $('#dday-date-input').focus();
       return;
     }
@@ -565,7 +591,15 @@ window.App = (function () {
     const activeEmoji = document.querySelector('.emoji-btn.active');
     const emoji = activeEmoji ? activeEmoji.dataset.emoji : '🎯';
 
-    DDay.addDDay({ title, targetDate, emoji });
+    if (editingDDayId) {
+      // 수정 모드
+      DDay.updateDDay(editingDDayId, { title, targetDate, emoji });
+      editingDDayId = null;
+    } else {
+      // 추가 모드
+      DDay.addDDay({ title, targetDate, emoji });
+    }
+
     closeDDayModal();
     renderDDays();
     if (window.Weekly) Weekly.render();

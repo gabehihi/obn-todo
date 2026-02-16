@@ -1014,11 +1014,11 @@ body.sheet-open {
   display: flex;
   align-items: center;
   justify-content: center;
-  opacity: 0;
+  opacity: 0.6;
   transition: opacity 0.2s;
 }
 
-.dday-card:hover .dday-delete {
+.dday-delete:hover {
   opacity: 1;
 }
 
